@@ -1,8 +1,5 @@
-Perfecto, Jessica. Aquí tienes el contenido completo, revisado y listo para pegar directamente en la página de GitHub en formato Markdown (`README.md`). Incluye todos los apartados esenciales: objetivo, estructura del repositorio, ejecución, entorno, scripts, autoría, licencia y cita sugerida.
 
----
-
-```markdown
+```
 # TFM_MDD_framework
 
 Framework multiómico para la identificación de biomarcadores en depresión mayor (MDD), centrado en transcriptómica, con integración de análisis adaptativo y automatizado para datos de microarrays y RNA-seq.
