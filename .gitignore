@@ -1,0 +1,14 @@
+# Ignorar datos pesados y sensibles
+data/
+results/
+*.rds
+*.CEL
+*.log
+
+# Archivos temporales y de entorno
+.Rhistory
+.Rproj.user/
+*.Rproj
+*.html
+*.pdf
+*.png
