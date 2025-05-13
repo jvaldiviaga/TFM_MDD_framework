@@ -382,6 +382,45 @@ tryCatch({
   interp <- c(interp, "⚠️ No se pudo calcular número de clústeres.")
 })
 
+# --- 6.2. Detección y eliminación automatizada de outliers por consenso ---
+
+cat("🔍 Detectando outliers por múltiples criterios...\n")
+
+# A. Outliers por SD
+outliers_sd <- names(sample_sd[sample_sd > 1.4])
+
+# B. Outliers por PCA (distancia Euclídea desde el centroide en PC1-PC2)
+pca <- prcomp(t(exprs_norm), scale. = TRUE)
+pc_scores <- pca$x[, 1:2]
+dist_pca <- sqrt(rowSums(scale(pc_scores)^2))
+limite_dist <- quantile(dist_pca, 0.95)
+outliers_pca <- names(dist_pca[dist_pca > limite_dist])
+
+# C. Outliers por AQM: cargar si existe informe previo
+outliers_aqm <- character(0)
+aqm_path <- file.path(qc_outdir, "AQM_Report", "index.html")
+if (file.exists(aqm_path)) {
+  aqm_lines <- readLines(aqm_path)
+  aqm_detected <- grep("flagged as outlier", aqm_lines, value = TRUE)
+  outliers_aqm <- unique(gsub(".*<code>(GSM[0-9]+)</code>.*", "\\1", aqm_detected))
+}
+
+# D. Votos por muestra
+outlier_votes <- table(c(outliers_sd, outliers_pca, outliers_aqm))
+outliers_final <- names(outlier_votes[outlier_votes >= 2])  # Aparecen en ≥2 listas
+
+# E. Filtrado y registro
+if (length(outliers_final) > 0) {
+  exprs_norm <- exprs_norm[, !colnames(exprs_norm) %in% outliers_final, drop = FALSE]
+  eset <- ExpressionSet(assayData = exprs_norm)
+  writeLines(outliers_final, file.path(qc_outdir, "muestras_excluidas.txt"))
+  cat("❗ Se eliminaron", length(outliers_final), "muestras por consenso de outliers.\n")
+} else {
+  cat("✅ No se eliminaron muestras. No se detectó consenso suficiente entre criterios.\n")
+}
+
+
+
 # --- 7. Informes ---
 # Reporte resumido con métricas clave de QC
 qc_txt <- c(

@@ -21,33 +21,18 @@
 # - Compatible con Snakemake, testing por lotes o ejecución desde entornos interactivos.
 
 # ------------------------------------------------------------
-#  LIMITACIONES ACTUALES Y MEJORAS PENDIENTES
+# MEJORAS APLICADAS EN ESTA VERSIÓN
 # ------------------------------------------------------------
 
-# 1. No valida si la subcarpeta seleccionada contiene los archivos necesarios (`DEG_results_mapped.csv`).
-#    -El script puede fallar si el usuario elige una carpeta incompleta o mal procesada.
-
-# 2. No permite seleccionar de forma explícita si se quiere hacer enriquecimiento sobre UP, DOWN o ALL.
-#    -Esto depende del comportamiento del script de análisis.
-
-# 3. No ofrece vista previa del contenido ni de los DEG detectados antes de lanzar el análisis.
-
-# 4. No registra log propio de entrada/salida o éxito/fracaso de la ejecución.
-#    -Debería guardar un `log_enrichment.txt` por dataset con fecha y carpeta elegida.
-
-# 5. No está preparado aún para ser llamado en modo silencioso (por script externo o Snakemake),
-#    ya que depende de `readline()` interactivamente.
-
-# 6. No verifica que `enrichment_analysis.R` esté presente en la ruta especificada.
-
-# 7. No permite lanzar enriquecimiento para varios análisis en cadena (modo batch).
+# 1. Verifica que `DEG_results_mapped.csv` exista antes de ejecutar el script de enriquecimiento.
+# 2. Registra un log por dataset cada vez que se lanza el análisis.
+# 3. Controla errores si el usuario pulsa Enter sin seleccionar subcarpeta válida.
 
 # ==========================================================
 
-# Carga de librerías
+# --- Cargar librerías necesarias ---
 suppressPackageStartupMessages({
-  library(fs)  # Para manejar rutas de forma robusta
-
+  library(fs)  # Para gestión robusta de rutas y ficheros
 })
 
 cat("🧬 Asistente de enriquecimiento funcional\n")
@@ -62,7 +47,6 @@ if (!dir_exists(diff_dir)) stop("❌ No se encontró la carpeta de resultados:",
 subcarpetas <- dir_ls(diff_dir, type = "directory")
 if (length(subcarpetas) == 0) stop("❌ No se encontraron subcarpetas de expresión diferencial")
 
-# Mostrar lista de configuraciones disponibles
 cat("\n📁 Subcarpetas de resultados detectadas:\n")
 for (i in seq_along(subcarpetas)) {
   cat(sprintf("  %2d) %s\n", i, path_file(subcarpetas[i])))
@@ -70,10 +54,27 @@ for (i in seq_along(subcarpetas)) {
 
 # === Paso 3: Seleccionar una configuración ===
 opcion <- as.integer(readline("\n❓ Elige la subcarpeta para análisis funcional (número): "))
-subcarpeta_elegida <- subcarpetas[opcion]
-if (is.na(subcarpeta_elegida)) stop("❌ Opción inválida")
+if (is.na(opcion) || opcion < 1 || opcion > length(subcarpetas)) stop("❌ Opción inválida")
 
-# === Paso 4: Ejecutar el script de enriquecimiento ===
-cmd <- sprintf("Rscript ~/TFM_MDD/scripts/transcriptomics/enrichment_analysis.R %s %s", dataset_id, path_file(subcarpeta_elegida))
+subcarpeta_elegida <- subcarpetas[opcion]
+subcarpeta_nombre <- path_file(subcarpeta_elegida)
+
+# === Paso 4: Verificar que existe DEG_results_mapped.csv ===
+mapped_path <- file.path(diff_dir, subcarpeta_nombre, "DEG_results_mapped.csv")
+if (!file.exists(mapped_path)) stop("❌ No se encontró el archivo DEG_results_mapped.csv en la carpeta seleccionada.")
+
+# === Paso 5: Ejecutar el script de enriquecimiento ===
+cmd <- sprintf("Rscript ~/TFM_MDD/scripts/transcriptomics/enrichment_analysis.R %s %s", dataset_id, subcarpeta_nombre)
 cat("\n🚀 Ejecutando enriquecimiento con:\n", cmd, "\n\n")
 system(cmd)
+
+# === Paso 6: Registrar log del análisis ===
+log_dir <- file.path("~/TFM_MDD/results", dataset_id, "enrichment")
+dir_create(log_dir, recurse = TRUE)
+log_path <- file.path(log_dir, "log_enrichment.txt")
+
+timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+log_line <- sprintf("[%s] Ejecutado enriquecimiento sobre: %s / %s", timestamp, dataset_id, subcarpeta_nombre)
+writeLines(log_line, log_path, sep = "\n", useBytes = TRUE, append = TRUE)
+
+cat("\n📝 Log actualizado en:", log_path, "\n")
