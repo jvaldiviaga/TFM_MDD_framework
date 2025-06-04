@@ -47,15 +47,32 @@ suppressPackageStartupMessages({
 
 # Función para interpretar el significado probable de una columna del metadata
 interpretar <- function(nombre) {
-  n <- tolower(nombre)  # Convierte el nombre a minúsculas para comparación más flexible
-  if (grepl("group|diagnos|status", n)) return("🧠 Diagnóstico clínico (MDD vs control)")
-  if (grepl("anxiety", n)) return("😰 Ansiedad comórbida (sí/no)")
-  if (grepl("severity|level", n)) return("📉 Gravedad clínica (leve/moderada/severa)")
+  n <- tolower(nombre)
+  
+  # === Interpretaciones exactas por nombre completo ===
+  if (n %in% c("sampleid", "geo_accession", "title")) return("🆔 Identificador de muestra")
+  if (n == "x.disease") return("🧠 Diagnóstico clínico (MDD vs control)")
+  if (n == "platform_id") return("🧪 Lote técnico / plataforma")
+  if (n == "status") return("📅 Estado de publicación en GEO")
+  if (grepl("submission_date|last_update_date", n)) return("📅 Fecha asociada al dataset")
+  if (grepl("protocol|processing|molecule|label|source|extract|hyb|scan|data_processing", n)) return("⚗️ Descripción técnica / protocolo experimental")
+  if (n == "organism_ch1") return("🧬 Especie biológica")
+  if (n == "taxid_ch1") return("🧬 ID taxonómico")
+  if (grepl("contact_", n)) return("📫 Información del investigador/contacto")
+  if (n == "supplementary_file") return("📎 Archivos suplementarios")
+  if (n == "data_row_count") return("🔢 Número de genes/probes")
+  if (n %in% c("x.tissue", "source_name_ch1")) return("🧪 Tipo de tejido / célula")
+  
+  # === Interpretaciones por patrón general ===
+  if (grepl("diagnos|disease|group", n)) return("🧠 Diagnóstico clínico")
+  if (grepl("anxiety", n)) return("😰 Ansiedad comórbida")
+  if (grepl("severity|level", n)) return("📉 Gravedad clínica")
   if (grepl("sex|gender", n)) return("🚻 Sexo biológico")
   if (grepl("age", n)) return("🎂 Edad del sujeto")
   if (grepl("batch|platform|array", n)) return("🧪 Lote técnico / batch")
   if (grepl("score|scale|hamd|bdi", n)) return("📊 Escala clínica")
-  return("⚠️ Descripción no disponible")  # Por defecto si no matchea ningún patrón conocido
+  
+  return("⚠️ Descripción no disponible")  # Fallback para columnas no reconocidas
 }
 
 # === Paso 1: Solicita el ID del dataset (ej. GSE98793) ===
@@ -64,21 +81,27 @@ dataset_id <- readline("📂 Introduce el ID del dataset (ej. GSE98793): ")
 
 # === Paso 2: Construye rutas a archivos relevantes ===
 base_dir <- file.path("~/TFM_MDD/data/transcriptomics", dataset_id)
-meta_clean <- file.path(base_dir, paste0(dataset_id, "_metadata_clean.csv"))
-meta_raw   <- file.path(base_dir, paste0(dataset_id, "_metadata.csv"))
+
+# PRIORIDAD: filtrado > limpio > crudo
+meta_filtered <- file.path(base_dir, paste0(dataset_id, "_metadata_filtered.csv"))
+meta_clean    <- file.path(base_dir, paste0(dataset_id, "_metadata_clean.csv"))
+meta_raw      <- file.path(base_dir, paste0(dataset_id, "_metadata.csv"))
+
 expr_file_combat <- file.path("~/TFM_MDD/results", dataset_id, "normalized_expression_combat.rds")
 expr_file_raw    <- file.path("~/TFM_MDD/results", dataset_id, "normalized_expression.rds")
-
-
-# Usa la versión con ComBat si existe, si no, la normal
 expr_file <- if (file.exists(expr_file_combat)) expr_file_combat else expr_file_raw
+
 cat("🧬 Matriz de expresión utilizada:", basename(expr_file), "\n")
 
 # === Paso 3: Verifica que el archivo de expresión exista ===
 if (!file.exists(expr_file)) stop("❌ No se encontró la matriz de expresión normalizada: ", expr_file)
 
-# === Paso 4: Carga metadata limpio si existe, o el crudo si no ===
-if (file.exists(meta_clean)) {
+# === Paso 4: Carga metadata con prioridad: filtrado → limpio → crudo ===
+if (file.exists(meta_filtered)) {
+  cat("📂 Usando metadata filtrado:", basename(meta_filtered), "\n")
+  metadata <- read_csv(meta_filtered, show_col_types = FALSE)
+} else if (file.exists(meta_clean)) {
+  cat("📂 Usando metadata limpio:", basename(meta_clean), "\n")
   metadata <- read_csv(meta_clean, show_col_types = FALSE)
 } else if (file.exists(meta_raw)) {
   cat("⚠️ Metadata limpio no encontrado. Mostrando columnas desde el archivo original.\n")
@@ -86,7 +109,6 @@ if (file.exists(meta_clean)) {
 } else {
   stop("❌ No se encontró ningún archivo de metadata disponible.")
 }
-
 
 # Normaliza nombres de columnas para evitar problemas con espacios o caracteres inválidos
 colnames(metadata) <- make.names(colnames(metadata))

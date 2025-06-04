@@ -1,11 +1,11 @@
 #!/usr/bin/env Rscript
-# ==========================================================
+
 # enrichment_analysis.R (versión definitiva y estable)
 # Análisis funcional global + interpretación fisiopatológica general para MDD
 # Uso: source("run_enrichment_interactive.R")
-# ==========================================================
 
-# ==========================================================
+
+
 # FORTALEZAS Y JUSTIFICACIÓN DEL FLUJO
 #
 # Este script constituye el núcleo funcional y robusto del análisis de rutas
@@ -19,9 +19,9 @@
 # - Genera interpretación automática general basada en mecanismos MDD (ej. neurotransmisión, inflamación...).
 # - Se integra desde `run_enrichment_interactive.R` o pipelines automatizados.
 
-# ----------------------------------------------------------
+
 # DECISIONES CLAVE Y JUSTIFICACIÓN
-# ----------------------------------------------------------
+
 #
 # 1. Se usa `DEG_results_mapped.csv` como única entrada (flujo simple y controlado).
 # 2. Se filtran genes con adj.P.Val < 0.05 y ENTREZID válido.
@@ -31,9 +31,7 @@
 # 6. Se genera una interpretación general basada en una lista cerrada de genes asociados a MDD.
 # 7. El resumen final resume términos enriquecidos por base y total de genes.
 
-# ------------------------------------------------------------
 # LIMITACIONES DETECTADAS
-# ------------------------------------------------------------
 
 # 1. El umbral de significancia (`adj.P.Val < 0.05`) y qvalueCutoff están codificados de forma fija
 #    dentro del script (no son argumentos externos configurables).
@@ -65,9 +63,9 @@
 # 10. El script no guarda logs o mensajes de error si fallan las funciones internas
 #     (ni traza qué pasos se completaron).
 
-# ------------------------------------------------------------
+
 # MEJORAS FUTURAS
-# ------------------------------------------------------------
+
 
 # - Permitir configurar umbrales como `adj.P.Val`, `qvalueCutoff` y `min.genes` como argumentos externos.
 
@@ -92,7 +90,7 @@
 # - Controlar errores explícitos durante llamadas a `bitr_kegg()`, `enrich*()`, `AnnotationDbi::select()`
 #   y otras funciones críticas.
 
-# ============================================================
+
 
 # --- Cargar paquetes ---
 suppressPackageStartupMessages({
@@ -124,8 +122,32 @@ deg_sig <- deg %>%
   filter(adj.P.Val < 0.05 & !is.na(entrez_id) & entrez_id != "") %>%
   distinct(entrez_id, .keep_all = TRUE)
 
+<<<<<<< HEAD
 entrez_ids <- unique(deg_sig$entrez_id)
 cat("✅ Genes significativos:", length(entrez_ids), "\n")
+
+=======
+# --- Leer DEGs ---
+deg <- read_csv(mapped_path, show_col_types = FALSE)
+deg_sig <- deg %>%
+  filter(adj.P.Val < 0.05 & !is.na(entrez_id) & entrez_id != "") %>%
+  distinct(entrez_id, .keep_all = TRUE)
+
+# --- Salir si no hay genes significativos ---
+if (nrow(deg_sig) == 0) {
+  cat("❌ No hay genes diferencialmente expresados significativos. Se omite el enriquecimiento.\n")
+  
+  # Crear carpeta de salida y archivos dummy para evitar error en Snakemake
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  writeLines("Sin genes significativos, no se ejecutó el análisis.", file.path(out_dir, "summary_enrichment.txt"))
+  write.csv(data.frame(), file.path(out_dir, "significant_genes.csv"), row.names = FALSE)
+  
+  quit(save = "no", status = 0)
+}
+
+entrez_ids <- unique(deg_sig$entrez_id)
+cat("✅ Genes significativos:", length(entrez_ids), "\n")
+cat(🚀 Subida completa: scripts nuevos, carpetas actualizadas y README final)
 
 # --- Mostrar genes reales ---
 if (!"symbol" %in% names(deg_sig)) stop("❌ Falta columna 'symbol' con nombres de genes")

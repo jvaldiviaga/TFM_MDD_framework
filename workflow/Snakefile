@@ -1,0 +1,19 @@
+# Snakefile principal para ejecutar un único dataset con Snakemake
+
+# === CARGA DE CONFIGURACIÓN ===
+configfile: "config/config.yaml"
+
+# === INCLUSIÓN DE MÓDULOS ===
+include: "rules/transcriptomics.smk"
+include: "rules/neuroimaging.smk"
+include: "rules/interomics.smk"
+include: "rules/common.smk"
+
+# === REGLA PRINCIPAL: SOLO PARA UN DATASET ===
+rule all:
+    input:
+        f"results/{config['dataset']}/normalized/normalized_expression_combat.rds",
+        f"results/{config['dataset']}/deg/DEG_results.csv",
+        f"results/{config['dataset']}/qc_post/qc_interpretacion.txt",
+        f"results/{config['dataset']}/enrichment/enrichment_results_GO.csv",
+        f"results/{config['dataset']}/validation/logfc_validation.csv"

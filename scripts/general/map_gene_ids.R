@@ -137,10 +137,45 @@ for (subdir in subdirs) {
     if (!any(is.na(c(id_col, symbol_col, entrez_col)))) {
       map <- annot[, c(id_col, symbol_col, entrez_col)]
       colnames(map) <- c("gene", "symbol", "entrez_id")
-      deg <- left_join(deg, map, by = "gene")
-      success <- TRUE
+      deg_tmp <- left_join(deg, map, by = "gene")
+      if ("entrez_id" %in% colnames(deg_tmp) && sum(!is.na(deg_tmp$entrez_id)) >= 5) {
+        deg <- deg_tmp
+        success <- TRUE
+      }
     }
   }
+  
+  # --- Alternativa: anotación GPL10558 (Illumina HumanHT-12) ---
+  if (!success) {
+    message("⚠️ Intentando con anotación Illumina GPL10558...")
+    gpl_url <- "https://ftp.ncbi.nlm.nih.gov/geo/platforms/GPL10nnn/GPL10558/annot/GPL10558.annot.gz"
+    gpl_file <- tempfile(fileext = ".gz")
+    download.file(gpl_url, gpl_file, quiet = TRUE)
+    
+    lines <- readLines(gzfile(gpl_file))
+    table_start <- grep("^ID\\t", lines)[1]
+    if (!is.na(table_start)) {
+      tmp_txt <- tempfile(fileext = ".txt")
+      writeLines(lines[table_start:length(lines)], tmp_txt)
+      annot <- read.delim(tmp_txt, header = TRUE, sep = "\t", quote = "")
+      
+      # Detecta columnas relevantes
+      cols <- tolower(colnames(annot))
+      id_col     <- colnames(annot)[which(cols %in% c("id", "id_ref"))[1]]
+      symbol_col <- colnames(annot)[which(cols %in% c("gene.symbol", "gene symbol", "gene title"))[1]]
+      entrez_col <- colnames(annot)[which(cols %in% c("gene.id", "entrez gene", "entrezgene", "entrez_gene_id"))[1]]
+      
+      if (!any(is.na(c(id_col, symbol_col, entrez_col)))) {
+        map <- annot[, c(id_col, symbol_col, entrez_col)]
+        colnames(map) <- c("gene", "symbol", "entrez_id")
+        deg <- left_join(deg, map, by = "gene")
+        if (sum(!is.na(deg$entrez_id)) >= 5) {
+          success <- TRUE
+        }
+      }
+    }
+  }
+  
   
   if (success) {
     # Filtra genes que realmente tienen un ENTREZID válido

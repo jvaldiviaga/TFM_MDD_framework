@@ -97,7 +97,20 @@ dataset_id <- ifelse(length(args) > 0, args[1], "GSE98793")  # Dataset por defec
 results_dir <- file.path("~/TFM_MDD/results", dataset_id)
 
 # Ruta del archivo de metadatos clínicos
-metadata_file <- file.path("~/TFM_MDD/data/transcriptomics", dataset_id, paste0(dataset_id, "_metadata.csv"))
+# Buscar primero el archivo filtrado, si existe
+metadata_dir <- file.path("~/TFM_MDD/data/transcriptomics", dataset_id)
+metadata_file_filtered <- file.path(metadata_dir, paste0(dataset_id, "_metadata_filtered.csv"))
+metadata_file_standard <- file.path(metadata_dir, paste0(dataset_id, "_metadata.csv"))
+
+if (file.exists(metadata_file_filtered)) {
+  metadata_file <- metadata_file_filtered
+  cat("📂 Usando metadata filtrado:", basename(metadata_file), "\n")
+} else if (file.exists(metadata_file_standard)) {
+  metadata_file <- metadata_file_standard
+  cat("📂 Usando metadata estándar:", basename(metadata_file), "\n")
+} else {
+  stop("❌ No se encontró ningún archivo de metadatos para el dataset.")
+}
 
 # Ruta de salida para el QC post-normalización
 qc_outdir <- file.path(results_dir, "qc_post")

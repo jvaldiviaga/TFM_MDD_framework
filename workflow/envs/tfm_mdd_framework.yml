@@ -1,0 +1,33 @@
+# Conda environment para análisis transcriptómico e inter-ómico (R)
+name: tfm_mdd_framework
+dependencies:
+  - r-base=4.2
+  - r-tidyverse
+  - r-data.table
+  - r-clusterprofiler
+  - r-org.hs.eg.db
+  - r-ggplot2
+  - r-rmarkdown
+  - r-biocmanager
+  - r-pheatmap
+  - bioconductor-geoquery
+  - bioconductor-affy
+  - bioconductor-limma
+  - bioconductor-vsn
+  - bioconductor-sva
+  - bioconductor-annotate
+  - bioconductor-org.hs.eg.db
+  - bioconductor-annotationdbi
+  - bioconductor-arrayqualitymetrics
+  - r-optparse
+  - r-rcolorbrewer
+  - r-r.utils
+  - r-readr
+  - r-dplyr
+  - r-stringr
+  - r-reshape2
+  - r-forcats
+  - r-scales
+  - r-patchwork
+  - r-igraph
+  - r-ggraph

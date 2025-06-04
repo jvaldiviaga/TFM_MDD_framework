@@ -128,47 +128,66 @@ out_dir <- file.path("~/TFM_MDD/results", dataset_id, "differential_expression",
 dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
 
 
-
 # 3. Carga de metadata y expresión normalizada
-# Si no existe el archivo de metadatos limpio...
-if (!file.exists(meta_clean)) {
+# Define las rutas posibles de archivos de metadatos:
+meta_filtered <- file.path(base_dir, paste0(dataset_id, "_metadata_filtered.csv"))
+meta_clean    <- file.path(base_dir, paste0(dataset_id, "_metadata_clean.csv"))
+meta_raw      <- file.path(base_dir, paste0(dataset_id, "_metadata.csv"))
+
+# Intenta cargar primero el archivo filtrado si existe
+if (file.exists(meta_filtered)) {
+  cat("📂 Usando metadata filtrado:", basename(meta_filtered), "\n")
+  metadata <- read_csv(meta_filtered, show_col_types = FALSE)
+  
+  # Asigna rownames si aún no existen
+  if (all(rownames(metadata) == as.character(1:nrow(metadata)))) {
+    if ("SampleID" %in% colnames(metadata)) {
+      rownames(metadata) <- metadata$SampleID
+    } else if ("geo_accession" %in% colnames(metadata)) {
+      rownames(metadata) <- metadata$geo_accession
+    } else {
+      stop("❌ No se pudieron establecer los rownames de metadata. Falta SampleID o geo_accession.")
+    }
+  }
+  
+} else if (file.exists(meta_clean)) {
+  cat("📂 Usando metadata limpio:", basename(meta_clean), "\n")
+  metadata <- read_csv(meta_clean, show_col_types = FALSE)
+  
+} else if (file.exists(meta_raw)) {
   cat("⚠️ Metadata limpio no encontrado. Usando el crudo y guardando versión limpia.\n")
-  
-  # Construye la ruta al archivo original
-  meta_raw <- file.path(base_dir, paste0(dataset_id, "_metadata.csv"))
-  
-  # Si tampoco está el archivo original, se detiene
-  if (!file.exists(meta_raw)) stop("❌ No se encontró metadata.csv para limpiar: ", meta_raw)
-  
-  # Carga el archivo original
   metadata <- read_csv(meta_raw, show_col_types = FALSE)
-  
-  # Guarda una copia como "limpio" (aunque aquí aún no se transforma)
   write_csv(metadata, meta_clean)
   cat("✅ Metadata limpio guardado como:", meta_clean, "\n")
+  
 } else {
-    # Si existe el metadata limpio, lo carga directamente
-  metadata <- read_csv(meta_clean, show_col_types = FALSE)
+  stop("❌ No se encontró ningún archivo de metadatos válido.")
 }
 
-# Limpia nombres de columnas para evitar problemas (espacios, símbolos)
+# Limpia nombres de columnas
 colnames(metadata) <- make.names(colnames(metadata))
 
-# Carga la matriz de expresión normalizada (con o sin ComBat)
+# === EXPRESIÓN ===
 exprs <- readRDS(expr_file)
-
-# Asegura que sea una matriz (por si es data.frame u otro objeto)
 if (!is.matrix(exprs)) exprs <- as.matrix(exprs)
 
-# --- 💡 Alineación de IDs GSM entre metadatos y expresión ---
-# Extrae solo el ID base de las muestras (por ejemplo: "GSM12345_rep1" → "GSM12345")
+# Extrae IDs base de expresión
 gsm_ids <- gsub("^([^_]+).*", "\\1", colnames(exprs))
-
-# Asigna estos IDs como nombres de columna
 colnames(exprs) <- gsm_ids
 
-# Hace lo mismo para los rownames del metadata
-rownames(metadata) <- gsub("^([^_]+).*", "\\1", rownames(metadata))
+# ⚠️ Validación: si rownames y columnas no coinciden → se evita la reasignación forzada
+if (length(rownames(metadata)) != length(gsm_ids)) {
+  message("⚠️ No se reasignan rownames: número de muestras en metadata ≠ expresión.")
+} else {
+  rownames(metadata) <- gsm_ids
+}
+
+# Intersección de muestras
+shared_samples <- intersect(colnames(exprs), rownames(metadata))
+exprs <- exprs[, shared_samples]
+metadata <- metadata[shared_samples, , drop = FALSE]
+
+
 
 # 4. Detección automática de variable clínica
 # Si no se indicó ninguna variable clínica por argumento...
@@ -224,7 +243,13 @@ gsm_ids <- gsub("^([^_]+).*", "\\1", colnames(exprs))
 colnames(exprs) <- gsm_ids
 
 # Reasigna los rownames del metadata también a IDs base
-rownames(metadata) <- gsm_ids
+# Solo reasignar rownames si coinciden exactamente en número
+if (length(rownames(metadata)) != length(gsm_ids)) {
+  message("⚠️ No se reasignan rownames: número de muestras en metadata ≠ expresión.")
+} else {
+  rownames(metadata) <- gsm_ids
+}
+
 
 # Intersección de muestras compartidas entre expresión y metadatos
 shared_samples <- intersect(colnames(exprs), rownames(metadata))

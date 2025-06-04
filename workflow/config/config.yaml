@@ -1,0 +1,43 @@
+# Archivo de configuración central para el workflow Snakemake del TFM
+
+# === DATASET ACTIVO POR DEFECTO (se puede sobrescribir con --config dataset=GSE32280) ===
+dataset: GSE32280
+
+# === LISTA DE DATASETS TRANSCRIPTÓMICOS ===
+datasets_transcriptomics:
+  - GSE98793
+  - GSE44593
+  - GSE39653
+  - GSE32280
+
+# === DATASET NEUROIMAGEN ===
+dataset_meg: ds005356
+
+# === RUTAS GENERALES ===
+paths:
+  base: "/home/jessica/TFM_MDD"
+  data: "/home/jessica/TFM_MDD/data"
+  results: "/home/jessica/TFM_MDD/results"
+  scripts: "/home/jessica/TFM_MDD/scripts"
+  logs: "/home/jessica/TFM_MDD/logs"
+
+# === ENTORNOS CONDA POR MÓDULO ===
+conda_envs:
+  transcriptomics: "envs/tfm_mdd_framework.yml"
+  neuroimaging: "envs/tfm_meg_env.yml"
+  interomics: "envs/tfm_mdd_framework.yml"
+
+# === PARÁMETROS OPCIONALES PARA SCRIPTS ===
+params:
+  preprocessing:
+    qc_threshold_sd: 0.5
+    combat_apply: true
+  differential_expression:
+    use_covariates: true
+  enrichment:
+    ontology: "GO"
+  meg:
+    crop_duration_sec: 600
+    notch_freq: 60
+    ica_enabled: true
+    regress_covariates: true
