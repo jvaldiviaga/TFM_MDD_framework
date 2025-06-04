@@ -71,3 +71,51 @@ Para dudas contactar con la autora del TFM o revisar los scripts en `scripts/`.
 ---
 
 © 2025. Proyecto académico. No redistribuir sin permiso.
+
+# ACTUALIZACIÓN!!!
+
+# workflow/README.md
+
+Este directorio contiene el archivo `Snakefile` y las reglas necesarias para ejecutar el pipeline completo de análisis transcriptómico y neurofisiológico de forma automatizada con Snakemake.
+
+---
+
+## ⚠️ Estado actual del `Snakefile`
+
+> **⚠️ IMPORTANTE:** A fecha de la última actualización, el `Snakefile` y los flujos declarados en este directorio **no han sido validados completamente** debido a:
+>
+> * Cambios recientes en la estructura de carpetas y nombres de scripts.
+> * Modificaciones en los argumentos y rutas que aún no han sido integradas al 100%.
+> * Falta de pruebas de ejecución completas de principio a fin.
+
+Por tanto, **no se garantiza su funcionamiento actual**, aunque refleja la lógica general del flujo implementado.
+
+---
+
+## 📁 Archivos presentes
+
+* `Snakefile`: definición de las reglas del flujo (por dataset, pasos modulares)
+* `config/config.yaml`: parámetros generales, rutas a datasets y opciones
+* `workflow_ready.zip`: versión provisional empaquetada del flujo
+
+---
+
+## 🧪 Pendientes para validación completa
+
+* Actualizar reglas con nombres de scripts definitivos
+* Sincronizar con los README actuales de cada subcarpeta (`scripts/`)
+* Probar la ejecución completa con `snakemake -n` y luego en seco (`-j 1`)
+
+---
+
+## 💡 Ejemplo de ejecución esperada (una vez validado)
+
+```bash
+conda activate tfm_mdd_framework
+snakemake -s Snakefile -j 4 --use-conda --config dataset=GSE98793
+```
+
+---
+
+Para cualquier duda sobre la integración o ejecución del flujo, contactar con el autor del proyecto o consultar los `README.md` en `scripts/` y `pipeline/`.
+
